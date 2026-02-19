@@ -75,8 +75,8 @@ def get_reconciliation():
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Payments API error: {e}")
 
-    total_revenue = sum(p["amount"] for p in completed_payments)
-    customers = list({p["customer_name"] for p in completed_payments})
+    total_revenue = sum(p["amount"]["value"] for p in completed_payments)
+    customers = list({f"{p['first_name']} {p['last_name']}".strip() for p in completed_payments})
 
     return ReconciliationResponse(
         total_revenue=total_revenue,

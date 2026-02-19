@@ -37,14 +37,14 @@ class Invoice:
     def from_payment(cls, payment_data: dict) -> Invoice:
         """Create an invoice from a Payments API response."""
         invoice_id = f"inv_{uuid.uuid4().hex[:10]}"
-        amount = payment_data["amount"]
-        customer_name = payment_data["customer_name"]
-        transaction_id = payment_data["transaction_id"]
+        amount = payment_data["amount"]["value"]
+        customer_name = f"{payment_data['first_name']} {payment_data['last_name']}".strip()
+        payment_reference = payment_data["payment_reference"]
 
         line_item = InvoiceLineItem(
-            description=f"Payment {transaction_id}",
+            description=f"Payment {payment_reference}",
             amount=amount,
-            payment_transaction_id=transaction_id,
+            payment_transaction_id=payment_reference,
         )
 
         return cls(
@@ -59,12 +59,12 @@ class Invoice:
     def add_payment(self, payment_data: dict) -> None:
         """Add another payment as a line item to this invoice."""
         line_item = InvoiceLineItem(
-            description=f"Payment {payment_data['transaction_id']}",
-            amount=payment_data["amount"],
-            payment_transaction_id=payment_data["transaction_id"],
+            description=f"Payment {payment_data['payment_reference']}",
+            amount=payment_data["amount"]["value"],
+            payment_transaction_id=payment_data["payment_reference"],
         )
         self.line_items.append(line_item)
-        self.total_amount += payment_data["amount"]
+        self.total_amount += payment_data["amount"]["value"]
 
     def to_dict(self) -> dict:
         return {

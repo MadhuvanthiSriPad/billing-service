@@ -27,9 +27,10 @@ class PaymentsClient:
         data = response.json()
 
         return {
-            "transaction_id": data["transaction_id"],
+            "payment_reference": data["payment_reference"],
             "amount": data["amount"],
-            "customer_name": data["customer_name"],
+            "first_name": data["first_name"],
+            "last_name": data["last_name"],
             "status": data["status"],
             "created_at": data["created_at"],
         }
@@ -46,9 +47,10 @@ class PaymentsClient:
 
         return [
             {
-                "transaction_id": p["transaction_id"],
+                "payment_reference": p["payment_reference"],
                 "amount": p["amount"],
-                "customer_name": p["customer_name"],
+                "first_name": p["first_name"],
+                "last_name": p["last_name"],
             }
             for p in payments
         ]

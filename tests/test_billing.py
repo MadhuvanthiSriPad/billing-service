@@ -10,10 +10,14 @@ client = TestClient(app)
 
 
 def _mock_payment(txn_id="txn_bill_001", amount=120.00, name="Alice Johnson"):
+    parts = name.split(" ", 1)
+    first_name = parts[0]
+    last_name = parts[1] if len(parts) > 1 else ""
     return {
-        "transaction_id": txn_id,
-        "amount": amount,
-        "customer_name": name,
+        "payment_reference": txn_id,
+        "amount": {"value": amount, "currency": "USD"},
+        "first_name": first_name,
+        "last_name": last_name,
         "status": "completed",
         "created_at": "2025-01-15T10:00:00Z",
     }
@@ -45,9 +49,9 @@ class TestReconciliation:
     @patch("src.clients.payments.PaymentsClient.list_completed_payments")
     def test_reconciliation_summary(self, mock_list):
         mock_list.return_value = [
-            {"transaction_id": "txn_001", "amount": 100.00, "customer_name": "Alice"},
-            {"transaction_id": "txn_002", "amount": 200.00, "customer_name": "Bob"},
-            {"transaction_id": "txn_003", "amount": 150.00, "customer_name": "Alice"},
+            {"payment_reference": "txn_001", "amount": {"value": 100.00, "currency": "USD"}, "first_name": "Alice", "last_name": ""},
+            {"payment_reference": "txn_002", "amount": {"value": 200.00, "currency": "USD"}, "first_name": "Bob", "last_name": ""},
+            {"payment_reference": "txn_003", "amount": {"value": 150.00, "currency": "USD"}, "first_name": "Alice", "last_name": ""},
         ]
         resp = client.get("/reconciliation")
         assert resp.status_code == 200
