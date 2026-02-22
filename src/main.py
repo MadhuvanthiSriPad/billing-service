@@ -1,4 +1,4 @@
-"""Billing Service — generates invoices and tracks costs for AgentBoard."""
+"""Billing Service — generates invoices and tracks costs."""
 
 from __future__ import annotations
 
@@ -20,15 +20,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Billing Service",
-    description="Invoice generation and cost tracking for AgentBoard",
-    version="1.0.0",
+    description="Invoice generation and cost tracking",
+    version=settings.api_version,
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -38,4 +37,4 @@ app.include_router(invoices.router, prefix=settings.api_prefix)
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "service": "billing-service", "version": "1.0.0"}
+    return {"status": "healthy", "service": "billing-service", "version": settings.api_version}

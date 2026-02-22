@@ -1,4 +1,4 @@
-"""Invoice models for AgentBoard billing."""
+"""Invoice models for the billing service."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Tests for the AgentBoard Billing Service."""
+"""Tests for the billing service."""
 
 import pytest
 import pytest_asyncio
@@ -45,12 +45,14 @@ MOCK_SESSIONS = [
         "agent_name": "code-reviewer",
         "model": "gpt-4o",
         "status": "completed",
-        "input_tokens": 5000,
-        "output_tokens": 2000,
-        "cached_tokens": 500,
-        "total_cost": 0.045075,
+        "priority": "high",
+        "usage": {"input_tokens": 5000, "output_tokens": 2000, "cached_tokens": 500},
+        "billing": {"total": 0.045075},
         "started_at": "2025-01-15T10:00:00+00:00",
         "ended_at": "2025-01-15T10:05:00+00:00",
+        "duration_seconds": 300.0,
+        "error_message": None,
+        "tags": None,
     },
     {
         "session_id": "sess_002",
@@ -58,12 +60,14 @@ MOCK_SESSIONS = [
         "agent_name": "bug-fixer",
         "model": "gpt-4o",
         "status": "completed",
-        "input_tokens": 3000,
-        "output_tokens": 1000,
-        "cached_tokens": 200,
-        "total_cost": 0.02403,
+        "priority": "medium",
+        "usage": {"input_tokens": 3000, "output_tokens": 1000, "cached_tokens": 200},
+        "billing": {"total": 0.02403},
         "started_at": "2025-01-15T14:00:00+00:00",
         "ended_at": "2025-01-15T14:03:00+00:00",
+        "duration_seconds": 180.0,
+        "error_message": None,
+        "tags": None,
     },
 ]
 
@@ -99,8 +103,8 @@ class TestGenerateInvoice:
         assert data["team_name"] == "Engineering"
         assert data["total_sessions"] == 2
         assert data["status"] == "issued"
-        assert data["total_input_tokens"] == 8000
-        assert data["total_output_tokens"] == 3000
+        assert data["total_input_tokens"] == 8000  # 5000 + 3000
+        assert data["total_output_tokens"] == 3000  # 2000 + 1000
         assert data["subtotal"] > 0
         assert data["tax_amount"] > 0
         assert data["total_amount"] > data["subtotal"]
