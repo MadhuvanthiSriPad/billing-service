@@ -4,3 +4,5 @@ __pycache__/
 .pytest_cache/
 dist/
 node_modules/
+.venv
+PUSH_INSTRUCTIONS.md
