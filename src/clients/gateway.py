@@ -6,7 +6,12 @@ import httpx
 
 from src.config import settings
 
-CALLER_HEADERS = {"X-Caller-Service": "billing-service"}
+
+def _headers() -> dict[str, str]:
+    headers = {"X-Caller-Service": "billing-service"}
+    if settings.api_core_api_key:
+        headers["X-API-Key"] = settings.api_core_api_key
+    return headers
 
 
 class GatewayClient:
@@ -22,31 +27,31 @@ class GatewayClient:
             params["team_id"] = team_id
         if status:
             params["status"] = status
-        async with httpx.AsyncClient(headers=CALLER_HEADERS) as client:
+        async with httpx.AsyncClient(headers=_headers()) as client:
             resp = await client.get(f"{self.base_url}{self.prefix}/sessions", params=params)
             resp.raise_for_status()
             return resp.json()
 
     async def get_session(self, session_id: str) -> dict:
-        async with httpx.AsyncClient(headers=CALLER_HEADERS) as client:
+        async with httpx.AsyncClient(headers=_headers()) as client:
             resp = await client.get(f"{self.base_url}{self.prefix}/sessions/{session_id}")
             resp.raise_for_status()
             return resp.json()
 
     async def get_cost_by_team(self) -> list[dict]:
-        async with httpx.AsyncClient(headers=CALLER_HEADERS) as client:
+        async with httpx.AsyncClient(headers=_headers()) as client:
             resp = await client.get(f"{self.base_url}{self.prefix}/analytics/cost-by-team")
             resp.raise_for_status()
             return resp.json()
 
     async def get_teams(self) -> list[dict]:
-        async with httpx.AsyncClient(headers=CALLER_HEADERS) as client:
+        async with httpx.AsyncClient(headers=_headers()) as client:
             resp = await client.get(f"{self.base_url}{self.prefix}/teams")
             resp.raise_for_status()
             return resp.json()
 
     async def get_session_stats(self) -> dict:
-        async with httpx.AsyncClient(headers=CALLER_HEADERS) as client:
+        async with httpx.AsyncClient(headers=_headers()) as client:
             resp = await client.get(f"{self.base_url}{self.prefix}/sessions/stats")
             resp.raise_for_status()
             return resp.json()

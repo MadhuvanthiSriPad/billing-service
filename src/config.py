@@ -20,6 +20,7 @@ except ModuleNotFoundError:
 class Settings(BaseSettings):
     gateway_url: str = "http://api-core:8001"
     database_url: str = "sqlite+aiosqlite:///billing.db"
+    api_core_api_key: str = ""
 
     # Default token pricing (per 1K tokens)
     input_token_price: float = 0.003
