@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.database import init_db
+from src.database import init_db, close_db
 from src.routes import invoices
 from src.config import settings
 
@@ -15,7 +15,10 @@ from src.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    yield
+    try:
+        yield
+    finally:
+        await close_db()
 
 
 app = FastAPI(
