@@ -50,6 +50,32 @@ class GatewayClient:
             resp.raise_for_status()
             return resp.json()
 
+    async def create_session(
+        self,
+        team_id: str,
+        agent_name: str,
+        priority: str,
+        max_cost_usd: float,
+        model: str = "devin-default",
+        prompt: str | None = None,
+        tags: str | None = None,
+    ) -> dict:
+        payload: dict = {
+            "team_id": team_id,
+            "agent_name": agent_name,
+            "priority": priority,
+            "max_cost_usd": max_cost_usd,
+            "model": model,
+        }
+        if prompt is not None:
+            payload["prompt"] = prompt
+        if tags is not None:
+            payload["tags"] = tags
+        async with httpx.AsyncClient(headers=_headers()) as client:
+            resp = await client.post(f"{self.base_url}{self.prefix}/sessions", json=payload)
+            resp.raise_for_status()
+            return resp.json()
+
     async def get_session_stats(self) -> dict:
         async with httpx.AsyncClient(headers=_headers()) as client:
             resp = await client.get(f"{self.base_url}{self.prefix}/sessions/stats")
