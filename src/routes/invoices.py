@@ -17,6 +17,8 @@ from src.clients.gateway import GatewayClient
 from src.schemas import (
     InvoiceResponse,
     GenerateInvoiceRequest,
+    UpdateInvoiceStatus,
+    VALID_TRANSITIONS,
     TeamCostSummary,
     BillingSummary,
 )
@@ -41,9 +43,6 @@ async def generate_invoice(request: GenerateInvoiceRequest, db: AsyncSession = D
         started = datetime.fromisoformat(s["started_at"])
         if request.period_start <= started <= request.period_end:
             period_sessions.append(s)
-
-    if not period_sessions:
-        raise HTTPException(status_code=404, detail="No sessions found for this team in the given period")
 
     # Fetch team info
     try:
@@ -87,8 +86,9 @@ async def generate_invoice(request: GenerateInvoiceRequest, db: AsyncSession = D
             amount=amount,
         ))
 
+    subtotal = round(subtotal, 2)
     tax_amount = round(subtotal * request.tax_rate, 2)
-    total_amount = round(subtotal + tax_amount, 2)
+    total_amount = subtotal + tax_amount
 
     invoice = Invoice(
         id=invoice_id,
@@ -100,7 +100,7 @@ async def generate_invoice(request: GenerateInvoiceRequest, db: AsyncSession = D
         total_input_tokens=sum(s.get("usage", {}).get("input_tokens", 0) for s in period_sessions),
         total_output_tokens=sum(s.get("usage", {}).get("output_tokens", 0) for s in period_sessions),
         total_cached_tokens=sum(s.get("usage", {}).get("cached_tokens", 0) for s in period_sessions),
-        subtotal=round(subtotal, 6),
+        subtotal=subtotal,
         tax_rate=request.tax_rate,
         tax_amount=tax_amount,
         total_amount=total_amount,
@@ -148,7 +148,7 @@ async def get_invoice(invoice_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.patch("/invoices/{invoice_id}", response_model=InvoiceResponse)
-async def update_invoice_status(invoice_id: str, status: str, db: AsyncSession = Depends(get_db)):
+async def update_invoice_status(invoice_id: str, body: UpdateInvoiceStatus, db: AsyncSession = Depends(get_db)):
     """Update invoice status (e.g., mark as paid)."""
     result = await db.execute(
         select(Invoice).options(selectinload(Invoice.line_items)).where(Invoice.id == invoice_id)
@@ -156,7 +156,21 @@ async def update_invoice_status(invoice_id: str, status: str, db: AsyncSession =
     invoice = result.scalar_one_or_none()
     if not invoice:
         raise HTTPException(status_code=404, detail=f"Invoice {invoice_id} not found")
-    invoice.status = InvoiceStatus(status)
+
+    try:
+        new_status = InvoiceStatus(body.status)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Invalid status: {body.status}")
+
+    current = invoice.status.value if hasattr(invoice.status, "value") else str(invoice.status)
+    allowed = VALID_TRANSITIONS.get(current, set())
+    if new_status.value not in allowed:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot transition from '{current}' to '{new_status.value}'",
+        )
+
+    invoice.status = new_status
     await db.commit()
     await db.refresh(invoice)
     return invoice

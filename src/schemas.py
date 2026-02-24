@@ -51,6 +51,19 @@ class GenerateInvoiceRequest(BaseModel):
     notes: str | None = None
 
 
+class UpdateInvoiceStatus(BaseModel):
+    status: str
+
+
+VALID_TRANSITIONS: dict[str, set[str]] = {
+    "draft": {"issued", "cancelled"},
+    "issued": {"paid", "overdue", "cancelled"},
+    "overdue": {"paid", "cancelled"},
+    "paid": set(),
+    "cancelled": set(),
+}
+
+
 class TeamCostSummary(BaseModel):
     team_id: str
     team_name: str

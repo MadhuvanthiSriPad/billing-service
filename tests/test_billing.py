@@ -120,12 +120,16 @@ class TestGenerateInvoice:
     @patch("src.routes.invoices.gateway")
     async def test_generate_invoice_no_sessions(self, mock_gw, client):
         mock_gw.list_sessions = AsyncMock(return_value=[])
+        mock_gw.get_teams = AsyncMock(return_value=[])
         resp = await client.post("/api/v1/invoices", json={
             "team_id": "team_eng",
             "period_start": "2025-01-01T00:00:00Z",
             "period_end": "2025-01-31T23:59:59Z",
         })
-        assert resp.status_code == 404
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["total_sessions"] == 0
+        assert data["total_amount"] == 0
 
 
 class TestListInvoices:
@@ -185,7 +189,7 @@ class TestUpdateInvoice:
         })
         invoice_id = create_resp.json()["id"]
 
-        resp = await client.patch(f"/api/v1/invoices/{invoice_id}", params={"status": "paid"})
+        resp = await client.patch(f"/api/v1/invoices/{invoice_id}", json={"status": "paid"})
         assert resp.status_code == 200
         assert resp.json()["status"] == "paid"
 
