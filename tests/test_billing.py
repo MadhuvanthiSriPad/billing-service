@@ -52,8 +52,8 @@ MOCK_SESSIONS = [
         "model": "gpt-4o",
         "status": "completed",
         "priority": "high",
-        "usage": {"input_tokens": 5000, "output_tokens": 2000, "cache_read_tokens": 500},
-        "billing": {"total_usd": 0.045075},
+        "usage": {"input_tokens": 5000, "completion_tokens": 2000, "cache_read_tokens": 500},
+        "billing": {"total": 0.045075},
         "started_at": "2025-01-15T10:00:00+00:00",
         "ended_at": "2025-01-15T10:05:00+00:00",
         "duration_seconds": 300.0,
@@ -67,8 +67,8 @@ MOCK_SESSIONS = [
         "model": "gpt-4o",
         "status": "completed",
         "priority": "medium",
-        "usage": {"input_tokens": 3000, "output_tokens": 1000, "cache_read_tokens": 200},
-        "billing": {"total_usd": 0.02403},
+        "usage": {"input_tokens": 3000, "completion_tokens": 1000, "cache_read_tokens": 200},
+        "billing": {"total": 0.02403},
         "started_at": "2025-01-15T14:00:00+00:00",
         "ended_at": "2025-01-15T14:03:00+00:00",
         "duration_seconds": 180.0,
@@ -110,7 +110,7 @@ class TestGenerateInvoice:
         assert data["total_sessions"] == 2
         assert data["status"] == "issued"
         assert data["total_input_tokens"] == 8000  # 5000 + 3000
-        assert data["total_output_tokens"] == 3000  # 2000 + 1000
+        assert data["total_output_tokens"] == 3000  # completion_tokens: 2000 + 1000
         assert data["subtotal"] > 0
         assert data["tax_amount"] > 0
         assert data["total_amount"] > data["subtotal"]
@@ -209,7 +209,7 @@ class TestCreateSession:
             "model": "gpt-4o",
             "status": "running",
             "priority": "high",
-            "usage": {"input_tokens": 0, "output_tokens": 0, "cached_tokens": 0},
+            "usage": {"input_tokens": 0, "completion_tokens": 0, "cached_tokens": 0},
             "billing": {"total": 0.0},
             "started_at": "2025-01-15T10:00:00+00:00",
             "ended_at": None,
@@ -234,6 +234,7 @@ class TestCreateSession:
             agent_name="code-reviewer",
             priority="high",
             max_cost_usd=10.0,
+            sla_tier="enterprise",
             model="gpt-4o",
         )
 
@@ -241,6 +242,7 @@ class TestCreateSession:
         call_args = mock_instance.post.call_args
         payload = call_args.kwargs.get("json") or call_args[1].get("json")
         assert payload["max_cost_usd"] == 10.0
+        assert payload["sla_tier"] == "enterprise"
         assert payload["team_id"] == "team_eng"
         assert payload["agent_name"] == "code-reviewer"
         assert payload["priority"] == "high"
@@ -270,6 +272,7 @@ class TestCreateSession:
             agent_name="code-reviewer",
             priority="high",
             max_cost_usd=25.5,
+            sla_tier="premium",
             prompt="Fix the bug",
             tags="urgent",
         )
@@ -277,6 +280,7 @@ class TestCreateSession:
         call_args = mock_instance.post.call_args
         payload = call_args.kwargs.get("json") or call_args[1].get("json")
         assert payload["max_cost_usd"] == 25.5
+        assert payload["sla_tier"] == "premium"
         assert payload["prompt"] == "Fix the bug"
         assert payload["tags"] == "urgent"
 
@@ -310,6 +314,7 @@ class TestCreateSession:
         assert "prompt" not in payload
         assert "tags" not in payload
         assert payload["max_cost_usd"] == 5.0
+        assert payload["sla_tier"] == "standard"  # default value
 
 
 class TestBillingSummary:

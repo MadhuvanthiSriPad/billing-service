@@ -21,14 +21,24 @@ class GatewayClient:
         self.base_url = base_url or settings.gateway_url
         self.prefix = "/api/v1"
 
-    async def list_sessions(self, team_id: str | None = None, status: str | None = None) -> list[dict]:
+    async def list_sessions(
+        self,
+        team_id: str | None = None,
+        status: str | None = None,
+        sla_tier: str = "standard",
+    ) -> list[dict]:
         params = {}
         if team_id:
             params["team_id"] = team_id
         if status:
             params["status"] = status
         async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
-            resp = await client.get(f"{self.base_url}{self.prefix}/sessions", params=params)
+            resp = await client.request(
+                "GET",
+                f"{self.base_url}{self.prefix}/sessions",
+                params=params,
+                json={"sla_tier": sla_tier},
+            )
             resp.raise_for_status()
             return resp.json()
 
@@ -67,6 +77,7 @@ class GatewayClient:
         agent_name: str,
         priority: str,
         max_cost_usd: float,
+        sla_tier: str = "standard",
         model: str = "devin-default",
         prompt: str | None = None,
         tags: str | None = None,
@@ -76,6 +87,7 @@ class GatewayClient:
             "agent_name": agent_name,
             "priority": priority,
             "max_cost_usd": max_cost_usd,
+            "sla_tier": sla_tier,
             "model": model,
         }
         if prompt is not None:
