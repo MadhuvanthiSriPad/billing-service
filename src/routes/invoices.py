@@ -65,7 +65,7 @@ async def generate_invoice(request: GenerateInvoiceRequest, db: AsyncSession = D
     for (agent_name, model), group_sessions in groups.items():
         input_tok = sum(s.get("usage", {}).get("input_tokens", 0) for s in group_sessions)
         output_tok = sum(s.get("usage", {}).get("output_tokens", 0) for s in group_sessions)
-        cached_tok = sum(s.get("usage", {}).get("cached_tokens", 0) for s in group_sessions)
+        cached_tok = sum(s.get("usage", {}).get("cache_read_tokens", 0) for s in group_sessions)
         amount = (
             (input_tok / 1000) * settings.input_token_price
             + (output_tok / 1000) * settings.output_token_price
@@ -99,7 +99,7 @@ async def generate_invoice(request: GenerateInvoiceRequest, db: AsyncSession = D
         total_sessions=len(period_sessions),
         total_input_tokens=sum(s.get("usage", {}).get("input_tokens", 0) for s in period_sessions),
         total_output_tokens=sum(s.get("usage", {}).get("output_tokens", 0) for s in period_sessions),
-        total_cached_tokens=sum(s.get("usage", {}).get("cached_tokens", 0) for s in period_sessions),
+        total_cached_tokens=sum(s.get("usage", {}).get("cache_read_tokens", 0) for s in period_sessions),
         subtotal=subtotal,
         tax_rate=request.tax_rate,
         tax_amount=tax_amount,
