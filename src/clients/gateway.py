@@ -32,9 +32,20 @@ class GatewayClient:
             resp.raise_for_status()
             return resp.json()
 
-    async def get_session(self, session_id: str) -> dict:
+    async def get_session(self, session_id: str, max_cost_usd: float = 0.0) -> dict:
+        """Fetch a single session by ID.
+
+        Args:
+            session_id: The session identifier.
+            max_cost_usd: Required cost cap for the session (added in latest
+                api-core contract).  Defaults to ``0.0`` (no cap).
+        """
         async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
-            resp = await client.get(f"{self.base_url}{self.prefix}/sessions/{session_id}")
+            resp = await client.request(
+                "GET",
+                f"{self.base_url}{self.prefix}/sessions/{session_id}",
+                json={"max_cost_usd": max_cost_usd},
+            )
             resp.raise_for_status()
             return resp.json()
 
@@ -47,6 +58,32 @@ class GatewayClient:
     async def get_teams(self) -> list[dict]:
         async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
             resp = await client.get(f"{self.base_url}{self.prefix}/teams")
+            resp.raise_for_status()
+            return resp.json()
+
+    async def create_session(
+        self,
+        team_id: str,
+        agent_name: str,
+        priority: str,
+        max_cost_usd: float,
+        model: str = "devin-default",
+        prompt: str | None = None,
+        tags: str | None = None,
+    ) -> dict:
+        payload: dict = {
+            "team_id": team_id,
+            "agent_name": agent_name,
+            "priority": priority,
+            "max_cost_usd": max_cost_usd,
+            "model": model,
+        }
+        if prompt is not None:
+            payload["prompt"] = prompt
+        if tags is not None:
+            payload["tags"] = tags
+        async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
+            resp = await client.post(f"{self.base_url}{self.prefix}/sessions", json=payload)
             resp.raise_for_status()
             return resp.json()
 
