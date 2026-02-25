@@ -41,9 +41,10 @@ class GatewayClient:
                 api-core contract).  Defaults to ``0.0`` (no cap).
         """
         async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
-            resp = await client.get(
+            resp = await client.request(
+                "GET",
                 f"{self.base_url}{self.prefix}/sessions/{session_id}",
-                params={"max_cost_usd": max_cost_usd},
+                json={"max_cost_usd": max_cost_usd},
             )
             resp.raise_for_status()
             return resp.json()
