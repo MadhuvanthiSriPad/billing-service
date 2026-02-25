@@ -194,6 +194,124 @@ class TestUpdateInvoice:
         assert resp.json()["status"] == "paid"
 
 
+class TestCreateSession:
+    @pytest.mark.asyncio
+    @patch("src.clients.gateway.httpx.AsyncClient")
+    async def test_create_session_sends_max_cost_usd(self, mock_client_cls):
+        """Verify that create_session includes max_cost_usd in the POST body."""
+        from unittest.mock import MagicMock
+        from src.clients.gateway import GatewayClient
+
+        expected_response = {
+            "session_id": "sess_new",
+            "team_id": "team_eng",
+            "agent_name": "code-reviewer",
+            "model": "gpt-4o",
+            "status": "running",
+            "priority": "high",
+            "usage": {"input_tokens": 0, "output_tokens": 0, "cached_tokens": 0},
+            "billing": {"total": 0.0},
+            "started_at": "2025-01-15T10:00:00+00:00",
+            "ended_at": None,
+            "duration_seconds": 0.0,
+            "error_message": None,
+            "tags": None,
+        }
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = expected_response
+        mock_response.raise_for_status = MagicMock()
+
+        mock_instance = AsyncMock()
+        mock_instance.post = AsyncMock(return_value=mock_response)
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=False)
+        mock_client_cls.return_value = mock_instance
+
+        gw = GatewayClient(base_url="http://test-api")
+        result = await gw.create_session(
+            team_id="team_eng",
+            agent_name="code-reviewer",
+            priority="high",
+            max_cost_usd=10.0,
+            model="gpt-4o",
+        )
+
+        mock_instance.post.assert_called_once()
+        call_args = mock_instance.post.call_args
+        payload = call_args.kwargs.get("json") or call_args[1].get("json")
+        assert payload["max_cost_usd"] == 10.0
+        assert payload["team_id"] == "team_eng"
+        assert payload["agent_name"] == "code-reviewer"
+        assert payload["priority"] == "high"
+        assert payload["model"] == "gpt-4o"
+        assert result["session_id"] == "sess_new"
+
+    @pytest.mark.asyncio
+    @patch("src.clients.gateway.httpx.AsyncClient")
+    async def test_create_session_optional_fields(self, mock_client_cls):
+        """Verify that optional fields (prompt, tags) are included when provided."""
+        from unittest.mock import MagicMock
+        from src.clients.gateway import GatewayClient
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"session_id": "sess_new"}
+        mock_response.raise_for_status = MagicMock()
+
+        mock_instance = AsyncMock()
+        mock_instance.post = AsyncMock(return_value=mock_response)
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=False)
+        mock_client_cls.return_value = mock_instance
+
+        gw = GatewayClient(base_url="http://test-api")
+        await gw.create_session(
+            team_id="team_eng",
+            agent_name="code-reviewer",
+            priority="high",
+            max_cost_usd=25.5,
+            prompt="Fix the bug",
+            tags="urgent",
+        )
+
+        call_args = mock_instance.post.call_args
+        payload = call_args.kwargs.get("json") or call_args[1].get("json")
+        assert payload["max_cost_usd"] == 25.5
+        assert payload["prompt"] == "Fix the bug"
+        assert payload["tags"] == "urgent"
+
+    @pytest.mark.asyncio
+    @patch("src.clients.gateway.httpx.AsyncClient")
+    async def test_create_session_omits_none_optional_fields(self, mock_client_cls):
+        """Verify that prompt and tags are omitted from payload when not provided."""
+        from unittest.mock import MagicMock
+        from src.clients.gateway import GatewayClient
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"session_id": "sess_new"}
+        mock_response.raise_for_status = MagicMock()
+
+        mock_instance = AsyncMock()
+        mock_instance.post = AsyncMock(return_value=mock_response)
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=False)
+        mock_client_cls.return_value = mock_instance
+
+        gw = GatewayClient(base_url="http://test-api")
+        await gw.create_session(
+            team_id="team_eng",
+            agent_name="code-reviewer",
+            priority="high",
+            max_cost_usd=5.0,
+        )
+
+        call_args = mock_instance.post.call_args
+        payload = call_args.kwargs.get("json") or call_args[1].get("json")
+        assert "prompt" not in payload
+        assert "tags" not in payload
+        assert payload["max_cost_usd"] == 5.0
+
+
 class TestBillingSummary:
     @pytest.mark.asyncio
     @patch("src.routes.invoices.gateway")
