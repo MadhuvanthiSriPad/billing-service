@@ -32,9 +32,19 @@ class GatewayClient:
             resp.raise_for_status()
             return resp.json()
 
-    async def get_session(self, session_id: str) -> dict:
+    async def get_session(self, session_id: str, max_cost_usd: float = 0.0) -> dict:
+        """Fetch a single session by ID.
+
+        Args:
+            session_id: The session identifier.
+            max_cost_usd: Required cost cap for the session (added in latest
+                api-core contract).  Defaults to ``0.0`` (no cap).
+        """
         async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
-            resp = await client.get(f"{self.base_url}{self.prefix}/sessions/{session_id}")
+            resp = await client.get(
+                f"{self.base_url}{self.prefix}/sessions/{session_id}",
+                params={"max_cost_usd": max_cost_usd},
+            )
             resp.raise_for_status()
             return resp.json()
 
