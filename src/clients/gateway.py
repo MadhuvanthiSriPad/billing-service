@@ -81,7 +81,7 @@ class GatewayClient:
             payload["prompt"] = prompt
         if tags is not None:
             payload["tags"] = tags
-        async with httpx.AsyncClient(headers=_headers()) as client:
+        async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
             resp = await client.post(f"{self.base_url}{self.prefix}/sessions", json=payload)
             resp.raise_for_status()
             return resp.json()
