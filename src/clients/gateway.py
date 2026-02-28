@@ -92,3 +92,31 @@ class GatewayClient:
             resp = await client.get(f"{self.base_url}{self.prefix}/sessions/stats")
             resp.raise_for_status()
             return resp.json()
+
+    # ------------------------------------------------------------------
+    # Contract-change endpoints
+    # ------------------------------------------------------------------
+
+    async def list_contract_changes(self, limit: int = 20) -> list[dict]:
+        """List recent contract changes from api-core."""
+        params: dict = {"limit": limit}
+        async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
+            resp = await client.get(
+                f"{self.base_url}{self.prefix}/contracts/changes",
+                params=params,
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+    async def get_contract_change(self, change_id: int) -> dict:
+        """Fetch full detail of a contract change including impact sets.
+
+        The response ``impact_sets`` items now include an optional ``method``
+        field (string, nullable) added in the latest api-core contract.
+        """
+        async with httpx.AsyncClient(headers=_headers(), timeout=30.0) as client:
+            resp = await client.get(
+                f"{self.base_url}{self.prefix}/contracts/changes/{change_id}",
+            )
+            resp.raise_for_status()
+            return resp.json()

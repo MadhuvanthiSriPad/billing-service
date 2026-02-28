@@ -336,3 +336,203 @@ class TestBillingSummary:
         assert data["total_revenue"] > 0
         assert len(data["top_teams"]) == 1
         assert data["top_teams"][0]["team_id"] == "team_eng"
+
+
+MOCK_CONTRACT_CHANGE_DETAIL = {
+    "id": 42,
+    "base_ref": "abc123",
+    "head_ref": "def456",
+    "created_at": "2025-06-01T12:00:00+00:00",
+    "is_breaking": False,
+    "severity": "low",
+    "summary_json": '{"info": "non-breaking"}',
+    "changed_routes_json": '["GET /api/v1/contracts/changes/{change_id}"]',
+    "changed_fields_json": None,
+    "affected_services": 1,
+    "affected_routes": 1,
+    "total_calls_last_7d": 15,
+    "impacted_services": ["billing-service"],
+    "changed_routes": ["GET /api/v1/contracts/changes/{change_id}"],
+    "impact_sets": [
+        {
+            "id": 1,
+            "caller_service": "billing-service",
+            "route_template": "/api/v1/contracts/changes/{change_id}",
+            "method": "GET",
+            "calls_last_7d": 15,
+            "confidence": "high",
+            "notes": None,
+        },
+        {
+            "id": 2,
+            "caller_service": "dashboard-service",
+            "route_template": "/api/v1/contracts/changes/{change_id}",
+            "method": None,
+            "calls_last_7d": 5,
+            "confidence": "medium",
+            "notes": "inferred from logs",
+        },
+    ],
+    "remediation_jobs": [],
+}
+
+MOCK_CONTRACT_CHANGES_LIST = [
+    {
+        "id": 42,
+        "base_ref": "abc123",
+        "head_ref": "def456",
+        "created_at": "2025-06-01T12:00:00+00:00",
+        "is_breaking": False,
+        "severity": "low",
+        "summary_json": '{"info": "non-breaking"}',
+        "changed_routes_json": '["GET /api/v1/contracts/changes/{change_id}"]',
+        "changed_fields_json": None,
+        "affected_services": 1,
+        "impacted_services": ["billing-service"],
+        "target_repos": ["billing-service"],
+        "source_repo": "api-core",
+        "active_jobs": 0,
+        "pr_count": 0,
+        "remediation_status": "pending",
+        "estimated_hours_saved": 0.0,
+        "incident_risk_score": "low",
+    },
+]
+
+
+class TestContractChangeClient:
+    """Tests for the contract-change gateway client methods."""
+
+    @pytest.mark.asyncio
+    @patch("src.clients.gateway.httpx.AsyncClient")
+    async def test_get_contract_change_returns_detail_with_method(self, mock_client_cls):
+        """Verify get_contract_change parses the response including the new method field."""
+        from unittest.mock import MagicMock
+        from src.clients.gateway import GatewayClient
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = MOCK_CONTRACT_CHANGE_DETAIL
+        mock_response.raise_for_status = MagicMock()
+
+        mock_instance = AsyncMock()
+        mock_instance.get = AsyncMock(return_value=mock_response)
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=False)
+        mock_client_cls.return_value = mock_instance
+
+        gw = GatewayClient(base_url="http://test-api")
+        result = await gw.get_contract_change(change_id=42)
+
+        mock_instance.get.assert_called_once()
+        call_args = mock_instance.get.call_args
+        assert "/contracts/changes/42" in call_args[0][0]
+
+        # Validate full response structure
+        assert result["id"] == 42
+        assert result["is_breaking"] is False
+        assert len(result["impact_sets"]) == 2
+
+        # The new `method` field must be present
+        assert result["impact_sets"][0]["method"] == "GET"
+        assert result["impact_sets"][1]["method"] is None
+
+    @pytest.mark.asyncio
+    @patch("src.clients.gateway.httpx.AsyncClient")
+    async def test_get_contract_change_handles_no_impact_sets(self, mock_client_cls):
+        """Verify get_contract_change works when impact_sets is empty."""
+        from unittest.mock import MagicMock
+        from src.clients.gateway import GatewayClient
+
+        detail = {**MOCK_CONTRACT_CHANGE_DETAIL, "impact_sets": [], "remediation_jobs": []}
+        mock_response = MagicMock()
+        mock_response.json.return_value = detail
+        mock_response.raise_for_status = MagicMock()
+
+        mock_instance = AsyncMock()
+        mock_instance.get = AsyncMock(return_value=mock_response)
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=False)
+        mock_client_cls.return_value = mock_instance
+
+        gw = GatewayClient(base_url="http://test-api")
+        result = await gw.get_contract_change(change_id=42)
+        assert result["impact_sets"] == []
+
+    @pytest.mark.asyncio
+    @patch("src.clients.gateway.httpx.AsyncClient")
+    async def test_list_contract_changes(self, mock_client_cls):
+        """Verify list_contract_changes sends limit param and returns list."""
+        from unittest.mock import MagicMock
+        from src.clients.gateway import GatewayClient
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = MOCK_CONTRACT_CHANGES_LIST
+        mock_response.raise_for_status = MagicMock()
+
+        mock_instance = AsyncMock()
+        mock_instance.get = AsyncMock(return_value=mock_response)
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=False)
+        mock_client_cls.return_value = mock_instance
+
+        gw = GatewayClient(base_url="http://test-api")
+        result = await gw.list_contract_changes(limit=10)
+
+        mock_instance.get.assert_called_once()
+        call_args = mock_instance.get.call_args
+        assert "/contracts/changes" in call_args[0][0] or "/contracts/changes" in str(call_args)
+        params = call_args.kwargs.get("params") or call_args[1].get("params", {})
+        assert params["limit"] == 10
+        assert len(result) == 1
+        assert result[0]["id"] == 42
+
+
+class TestImpactSetSchema:
+    """Verify the ImpactSetItem schema properly handles the new method field."""
+
+    def test_impact_set_with_method(self):
+        from src.schemas import ImpactSetItem
+
+        item = ImpactSetItem(
+            id=1,
+            caller_service="billing-service",
+            route_template="/api/v1/contracts/changes/{change_id}",
+            method="GET",
+            calls_last_7d=15,
+            confidence="high",
+        )
+        assert item.method == "GET"
+
+    def test_impact_set_method_nullable(self):
+        from src.schemas import ImpactSetItem
+
+        item = ImpactSetItem(
+            id=2,
+            caller_service="dashboard-service",
+            route_template="/api/v1/contracts/changes/{change_id}",
+            method=None,
+            calls_last_7d=5,
+            confidence="medium",
+        )
+        assert item.method is None
+
+    def test_impact_set_method_default_none(self):
+        from src.schemas import ImpactSetItem
+
+        item = ImpactSetItem(
+            id=3,
+            caller_service="some-service",
+            route_template="/api/v1/sessions",
+            calls_last_7d=0,
+            confidence="low",
+        )
+        assert item.method is None
+
+    def test_contract_change_detail_schema(self):
+        from src.schemas import ContractChangeDetail
+
+        detail = ContractChangeDetail(**MOCK_CONTRACT_CHANGE_DETAIL)
+        assert detail.id == 42
+        assert len(detail.impact_sets) == 2
+        assert detail.impact_sets[0].method == "GET"
+        assert detail.impact_sets[1].method is None
