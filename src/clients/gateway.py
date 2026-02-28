@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 import httpx
 
 from src.config import settings
+
+VALID_SLA_TIERS = {"standard", "premium", "enterprise"}
+SLA_TIER_TYPE = Literal["standard", "premium", "enterprise"]
 
 
 def _headers() -> dict[str, str]:
@@ -27,6 +32,8 @@ class GatewayClient:
         status: str | None = None,
         sla_tier: str = "standard",
     ) -> list[dict]:
+        if sla_tier not in VALID_SLA_TIERS:
+            raise ValueError(f"Invalid sla_tier '{sla_tier}'. Must be one of: {sorted(VALID_SLA_TIERS)}")
         params = {}
         if team_id:
             params["team_id"] = team_id
@@ -82,6 +89,8 @@ class GatewayClient:
         prompt: str | None = None,
         tags: str | None = None,
     ) -> dict:
+        if sla_tier not in VALID_SLA_TIERS:
+            raise ValueError(f"Invalid sla_tier '{sla_tier}'. Must be one of: {sorted(VALID_SLA_TIERS)}")
         payload: dict = {
             "team_id": team_id,
             "agent_name": agent_name,

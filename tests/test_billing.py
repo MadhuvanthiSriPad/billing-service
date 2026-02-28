@@ -317,6 +317,33 @@ class TestCreateSession:
         assert payload["sla_tier"] == "standard"  # default value
 
 
+    @pytest.mark.asyncio
+    async def test_create_session_invalid_sla_tier(self):
+        """Verify that an invalid sla_tier raises ValueError."""
+        from src.clients.gateway import GatewayClient
+
+        gw = GatewayClient(base_url="http://test-api")
+        with pytest.raises(ValueError, match="Invalid sla_tier"):
+            await gw.create_session(
+                team_id="team_eng",
+                agent_name="code-reviewer",
+                priority="high",
+                max_cost_usd=5.0,
+                sla_tier="invalid_tier",
+            )
+
+
+class TestListSessionsValidation:
+    @pytest.mark.asyncio
+    async def test_list_sessions_invalid_sla_tier(self):
+        """Verify that an invalid sla_tier raises ValueError."""
+        from src.clients.gateway import GatewayClient
+
+        gw = GatewayClient(base_url="http://test-api")
+        with pytest.raises(ValueError, match="Invalid sla_tier"):
+            await gw.list_sessions(sla_tier="invalid_tier")
+
+
 class TestBillingSummary:
     @pytest.mark.asyncio
     @patch("src.routes.invoices.gateway")
