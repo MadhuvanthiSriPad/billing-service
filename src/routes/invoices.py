@@ -31,9 +31,24 @@ gateway = GatewayClient()
 @router.post("/invoices", response_model=InvoiceResponse, status_code=201)
 async def generate_invoice(request: GenerateInvoiceRequest, db: AsyncSession = Depends(get_db)):
     """Generate an invoice for a team based on api-core data."""
+    # Fetch team info (needed for team_name and sla_tier fallback)
+    try:
+        teams = await gateway.get_teams()
+        team_info = next((t for t in teams if t["id"] == request.team_id), None)
+    except Exception:
+        team_info = None
+    team_name = team_info["name"] if team_info else request.team_id
+
+    # Determine sla_tier: explicit request field > team plan > "standard"
+    sla_tier = request.sla_tier
+    if sla_tier is None and team_info:
+        sla_tier = team_info.get("plan", "standard")
+    if sla_tier is None:
+        sla_tier = "standard"
+
     # Fetch sessions from api-core for this team
     try:
-        sessions = await gateway.list_sessions(team_id=request.team_id)
+        sessions = await gateway.list_sessions(team_id=request.team_id, sla_tier=sla_tier)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Gateway API error: {e}")
 
@@ -43,14 +58,6 @@ async def generate_invoice(request: GenerateInvoiceRequest, db: AsyncSession = D
         started = datetime.fromisoformat(s["started_at"])
         if request.period_start <= started <= request.period_end:
             period_sessions.append(s)
-
-    # Fetch team info
-    try:
-        teams = await gateway.get_teams()
-        team_info = next((t for t in teams if t["id"] == request.team_id), None)
-    except Exception:
-        team_info = None
-    team_name = team_info["name"] if team_info else request.team_id
 
     # Group by agent+model for line items
     groups: dict[tuple[str, str], list[dict]] = defaultdict(list)

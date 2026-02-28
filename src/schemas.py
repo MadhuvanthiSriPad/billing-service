@@ -49,6 +49,7 @@ class GenerateInvoiceRequest(BaseModel):
     period_end: datetime
     tax_rate: float = 0.0
     notes: str | None = None
+    sla_tier: str | None = None
 
 
 class UpdateInvoiceStatus(BaseModel):

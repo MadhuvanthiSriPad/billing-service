@@ -116,6 +116,40 @@ class TestGenerateInvoice:
         assert data["total_amount"] > data["subtotal"]
         assert len(data["line_items"]) == 2  # 2 agents
 
+        # Verify sla_tier falls back to team plan ("enterprise") when not provided
+        mock_gw.list_sessions.assert_called_once_with(team_id="team_eng", sla_tier="enterprise")
+
+    @pytest.mark.asyncio
+    @patch("src.routes.invoices.gateway")
+    async def test_generate_invoice_explicit_sla_tier(self, mock_gw, client):
+        """Verify that an explicit sla_tier in the request overrides the team plan."""
+        mock_gw.list_sessions = AsyncMock(return_value=MOCK_SESSIONS)
+        mock_gw.get_teams = AsyncMock(return_value=MOCK_TEAMS)
+
+        resp = await client.post("/api/v1/invoices", json={
+            "team_id": "team_eng",
+            "period_start": "2025-01-01T00:00:00Z",
+            "period_end": "2025-01-31T23:59:59Z",
+            "sla_tier": "premium",
+        })
+        assert resp.status_code == 201
+        mock_gw.list_sessions.assert_called_once_with(team_id="team_eng", sla_tier="premium")
+
+    @pytest.mark.asyncio
+    @patch("src.routes.invoices.gateway")
+    async def test_generate_invoice_sla_tier_defaults_to_standard_without_team(self, mock_gw, client):
+        """When team info is unavailable and no sla_tier given, default to 'standard'."""
+        mock_gw.list_sessions = AsyncMock(return_value=[])
+        mock_gw.get_teams = AsyncMock(return_value=[])  # team not found
+
+        resp = await client.post("/api/v1/invoices", json={
+            "team_id": "team_unknown",
+            "period_start": "2025-01-01T00:00:00Z",
+            "period_end": "2025-01-31T23:59:59Z",
+        })
+        assert resp.status_code == 201
+        mock_gw.list_sessions.assert_called_once_with(team_id="team_unknown", sla_tier="standard")
+
     @pytest.mark.asyncio
     @patch("src.routes.invoices.gateway")
     async def test_generate_invoice_no_sessions(self, mock_gw, client):
