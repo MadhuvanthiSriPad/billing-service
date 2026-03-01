@@ -234,6 +234,8 @@ class TestCreateSession:
             agent_name="code-reviewer",
             priority="high",
             max_cost_usd=10.0,
+            compliance_level="soc2",
+            data_residency="eu",
             model="gpt-4o",
         )
 
@@ -245,6 +247,8 @@ class TestCreateSession:
         assert payload["agent_name"] == "code-reviewer"
         assert payload["priority"] == "high"
         assert payload["model"] == "gpt-4o"
+        assert payload["compliance_level"] == "soc2"
+        assert payload["data_residency"] == "eu"
         assert result["session_id"] == "sess_new"
 
     @pytest.mark.asyncio
@@ -270,6 +274,8 @@ class TestCreateSession:
             agent_name="code-reviewer",
             priority="high",
             max_cost_usd=25.5,
+            compliance_level="hipaa",
+            data_residency="ap",
             prompt="Fix the bug",
             tags="urgent",
         )
@@ -277,6 +283,8 @@ class TestCreateSession:
         call_args = mock_instance.post.call_args
         payload = call_args.kwargs.get("json") or call_args[1].get("json")
         assert payload["max_cost_usd"] == 25.5
+        assert payload["compliance_level"] == "hipaa"
+        assert payload["data_residency"] == "ap"
         assert payload["prompt"] == "Fix the bug"
         assert payload["tags"] == "urgent"
 
@@ -310,6 +318,8 @@ class TestCreateSession:
         assert "prompt" not in payload
         assert "tags" not in payload
         assert payload["max_cost_usd"] == 5.0
+        assert payload["compliance_level"] == "none"
+        assert payload["data_residency"] == "us"
 
 
 class TestBillingSummary:

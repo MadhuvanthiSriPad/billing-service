@@ -67,6 +67,8 @@ class GatewayClient:
         agent_name: str,
         priority: str,
         max_cost_usd: float,
+        compliance_level: str = "none",
+        data_residency: str = "us",
         model: str = "devin-default",
         prompt: str | None = None,
         tags: str | None = None,
@@ -76,6 +78,8 @@ class GatewayClient:
             "agent_name": agent_name,
             "priority": priority,
             "max_cost_usd": max_cost_usd,
+            "compliance_level": compliance_level,
+            "data_residency": data_residency,
             "model": model,
         }
         if prompt is not None:
