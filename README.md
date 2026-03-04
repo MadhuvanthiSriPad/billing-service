@@ -1,6 +1,6 @@
 # Billing Service
 
-`billing-service` turns `api-core` session data into invoices and billing summaries. It is the accounting side of the demo and keeps its own invoice database.
+`billing-service` turns `api-core` session data into invoices and billing summaries. It is the accounting side of the platform and keeps its own invoice database.
 
 ## What It Handles
 
