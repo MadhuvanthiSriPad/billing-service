@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Billing Service",
+    title=settings.service_name.replace("-", " ").title(),
     description="Invoice generation and cost tracking",
     version=settings.api_version,
     lifespan=lifespan,
@@ -40,4 +40,4 @@ app.include_router(invoices.router, prefix=settings.api_prefix)
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "service": "billing-service", "version": settings.api_version}
+    return {"status": "healthy", "service": settings.service_name, "version": settings.api_version}

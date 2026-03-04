@@ -18,6 +18,7 @@ except ModuleNotFoundError:
 
 
 class Settings(BaseSettings):
+    service_name: str = "billing-service"
     gateway_url: str = "http://api-core:8001"
     database_url: str = "sqlite+aiosqlite:///billing.db"
     api_core_api_key: str = ""

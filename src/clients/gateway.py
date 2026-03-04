@@ -8,7 +8,7 @@ from src.config import settings
 
 
 def _headers() -> dict[str, str]:
-    headers = {"X-Caller-Service": "billing-service"}
+    headers = {"X-Caller-Service": settings.service_name}
     if settings.api_core_api_key:
         headers["X-API-Key"] = settings.api_core_api_key
     return headers
