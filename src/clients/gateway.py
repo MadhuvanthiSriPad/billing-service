@@ -67,15 +67,31 @@ class GatewayClient:
         agent_name: str,
         priority: str,
         max_cost_usd: float,
+        data_residency: str = "us",
         model: str = "devin-default",
         prompt: str | None = None,
         tags: str | None = None,
     ) -> dict:
+        """Create a new session via api-core.
+
+        Args:
+            team_id: The team identifier.
+            agent_name: Name of the agent.
+            priority: Session priority level.
+            max_cost_usd: Cost cap for the session.
+            data_residency: Required data residency region for regulatory
+                compliance. Must be one of 'us', 'eu', or 'ap'.
+                Defaults to 'us'.
+            model: Model to use. Defaults to 'devin-default'.
+            prompt: Optional prompt text.
+            tags: Optional tags string.
+        """
         payload: dict = {
             "team_id": team_id,
             "agent_name": agent_name,
             "priority": priority,
             "max_cost_usd": max_cost_usd,
+            "data_residency": data_residency,
             "model": model,
         }
         if prompt is not None:
